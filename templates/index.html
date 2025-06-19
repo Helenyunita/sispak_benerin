@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BETULIN - Modern Spell Checker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f8fafc;
+      }
+      
+      .card {
+        background: white;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        transition: all 0.2s ease;
+      }
+      
+      .card:hover {
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+      }
+      
+      .primary-btn {
+        background-color: #3b82f6;
+        transition: all 0.2s ease;
+      }
+      
+      .primary-btn:hover {
+        background-color: #2563eb;
+        transform: translateY(-1px);
+      }
+      
+      .secondary-btn {
+        background-color: white;
+        border: 1px solid #e2e8f0;
+        transition: all 0.2s ease;
+      }
+      
+      .secondary-btn:hover {
+        border-color: #cbd5e1;
+      }
+      
+      .suggestion-chip {
+        background-color: #eff6ff;
+        transition: all 0.2s ease;
+      }
+      
+      .suggestion-chip:hover {
+        background-color: #dbeafe;
+      }
+      
+      textarea:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px #bfdbfe;
+      }
+      
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+      
+      ::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.05);
+      }
+      
+      ::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.1);
+        border-radius: 3px;
+      }
+    </style>
+  </head>
+ 
+  <body class="min-h-screen bg-gray-50">
+    <div class="container mx-auto px-4 py-12 max-w-6xl">
+      <!-- Header -->
+      <header class="text-center mb-12">
+        <h1 class="text-4xl font-bold text-gray-900 mb-3">
+          <span class="text-blue-600">BETULIN</span>
+        </h1>
+        <p class="text-gray-600 max-w-2xl mx-auto">
+          Pendeteksi kesalahan kata bahasa Indonesia dengan teknologi modern
+        </p>
+      </header>
+
+      <!-- Stats Bar -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div class="card rounded-xl p-4 text-center">
+          <div class="text-2xl font-semibold text-gray-900 mb-1">{{ kalimat|length if kalimat else 0 }}</div>
+          <div class="text-gray-500 text-sm">Kata Dianalisis</div>
+        </div>
+        <div class="card rounded-xl p-4 text-center">
+          <div class="text-2xl font-semibold text-gray-900 mb-1">{{ hasil|length if hasil else 0 }}</div>
+          <div class="text-gray-500 text-sm">Kesalahan Ditemukan</div>
+        </div>
+        <div class="card rounded-xl p-4 text-center">
+          <div class="text-2xl font-semibold text-gray-900 mb-1">
+            {% if kalimat and hasil %}
+              {{ "%.1f"|format(((kalimat|length - hasil|length) / kalimat|length * 100)) }}%
+            {% else %}
+              100%
+            {% endif %}
+          </div>
+          <div class="text-gray-500 text-sm">Tingkat Prediksi Kesalahan</div>
+        </div>
+      </div>
+
+      <!-- Main Content -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Input Section -->
+        <div class="card rounded-xl p-6">
+          <div class="flex items-center justify-between mb-6">
+            <div>
+              <h2 class="text-xl font-semibold text-gray-900 mb-1">Masukan Teks</h2>
+              <p class="text-gray-500 text-sm">Ketik atau paste teks yang ingin diperiksa</p>
+            </div>
+              <form action="{{ url_for('buka_file') }}" method="POST" enctype="multipart/form-data" class="flex items-center gap-3">
+  <!-- Hidden file input -->
+  <input 
+    type="file" 
+    id="fileInput" 
+    name="file" 
+    accept=".txt" 
+    required 
+    class="hidden"
+  />
+  
+            <!-- Custom button to open file picker -->
+            <button 
+              type="button" 
+              onclick="document.getElementById('fileInput').click()" 
+              class="secondary-btn px-4 py-2 text-gray-700 font-medium rounded-lg text-sm"
+            >
+              Pilih File
+            </button>
+
+            <!-- Text display filename -->
+            <span id="fileName" class="text-gray-600 text-sm truncate max-w-xs"></span>
+
+            <!-- Submit button -->
+            <button 
+              type="submit" 
+              class="primary-btn px-4 py-2 text-white font-medium rounded-lg text-sm"
+            >
+              Import File
+            </button>
+          </form>
+
+
+          </div>
+          
+          <form action="{{ url_for('periksa')}}" method="POST">
+            <textarea 
+              id="inputan" 
+              name="inputan" 
+              class="w-full h-64 p-4 border border-gray-200 rounded-lg focus:border-blue-500 resize-none text-gray-700 placeholder-gray-400 text-base leading-relaxed"
+              placeholder="Mulai mengetik di sini untuk memeriksa ejaan..."
+            >{% for key, key2 in kalimat.items() %}{{key}} {%endfor%}</textarea>
+            
+            <div class="flex gap-3 mt-6">
+              <button type="submit" class="primary-btn flex-1 px-6 py-3 text-white font-medium rounded-lg text-base">
+                Analisis & Perbaiki
+              </button>
+              
+              <button type="button" onclick="salinTeks()" id="copyButton" class="secondary-btn px-6 py-3 text-gray-700 font-medium rounded-lg text-base">
+                Salin Teks
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Results Section -->
+        <div class="card rounded-xl p-6">
+          <div class="flex flex-col mb-6">
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <h2 class="text-xl font-semibold text-gray-900 mb-1">Saran Perbaikan</h2>
+                <p class="text-gray-500 text-sm">Klik saran untuk mengganti kata secara otomatis</p>
+              </div>
+              <div class="bg-gray-100 px-3 py-1 rounded-lg">
+                <span class="text-gray-700 font-medium">{{ hasil|length if hasil else 0 }}</span>
+                <span class="text-gray-500 text-sm ml-1">issues</span>
+              </div>
+            </div>
+          </div>
+          
+          {% if hasil %}
+          <div class="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+            {% for key, key2 in hasil.items() %}
+            <div class="border border-gray-100 rounded-lg p-4">
+              <div class="flex items-start">
+                <div class="flex-shrink-0 mt-1">
+                  <div class="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                </div>
+                <div class="ml-3 flex-1">
+                  <h3 class="text-base font-medium text-gray-900 mb-1">{{ key }}</h3>
+                  <p class="text-gray-500 text-sm mb-3">Kata yang terdeteksi salah eja</p>
+                  <div class="flex flex-wrap gap-2">
+                    {% for kata in key2 %}
+                    <button type="button" class="saran-button px-3 py-1.5 suggestion-chip text-blue-600 text-sm font-medium rounded-lg" data-salah="{{key}}" data-bener="{{kata}}">
+                      {{kata}}
+                    </button>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+            </div>
+            {%endfor%}
+          </div>
+          {% else %}
+          <div class="text-center py-12">
+            <div class="h-16 w-16 mx-auto rounded-lg bg-blue-100 flex items-center justify-center mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Sempurna! 🎉</h3>
+            <p class="text-gray-500">Tidak ditemukan kesalahan ejaan dalam teks Anda</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white py-4 border-t border-gray-200 mt-12">
+      <div class="container mx-auto px-4 text-center text-gray-500 text-sm">
+        BETULIN © 2025 - Kelompok 5
+      </div>
+    </footer>
+
+    <script>
+      const textarea = document.getElementById('inputan');
+      const buttons = document.querySelectorAll('.saran-button');
+      const copyButton = document.getElementById('copyButton');
+
+      function salinTeks() {
+        textarea.select();
+        document.execCommand('copy');
+        
+        // Feedback
+        copyButton.textContent = 'Tersalin!';
+        copyButton.classList.add('bg-green-100', 'text-green-700');
+        
+        setTimeout(() => {
+          copyButton.textContent = 'Salin Teks';
+          copyButton.classList.remove('bg-green-100', 'text-green-700');
+        }, 2000);
+      }
+
+      buttons.forEach(button => {
+        button.addEventListener('click', () => {
+          const salah = button.getAttribute('data-salah');
+          const bener = button.getAttribute('data-bener');
+          
+          // Add click effect
+          button.style.transform = 'scale(0.95)';
+          setTimeout(() => {
+            button.style.transform = 'scale(1)';
+          }, 150);
+          
+          // Replace word
+          const pattern = new RegExp('\\b' + salah.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'g');
+          textarea.value = textarea.value.replace(pattern, bener);
+          
+          // Add success indicator
+          button.textContent += ' ✓';
+          setTimeout(() => {
+            button.textContent = button.textContent.replace(' ✓', '');
+          }, 1000);
+        });
+      });
+    </script>
+  </body>
+</html>
